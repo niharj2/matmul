@@ -37,7 +37,7 @@ void MatrixMultiplication(float* M, float* N, float* P, int width) {
     //Copy data from the host to the device
     cudaMemcpy(Md, M, size, cudaMemcpyHostToDevice);
     cudaMemcpy(Nd, N, size, cudaMemcpyHostToDevice);
-    
+
 
     // copy the product from device to host 
     cudaMemcpy(P, Pd, size, cudaMemcpyDeviceToHost); 
@@ -49,6 +49,20 @@ void MatrixMultiplication(float* M, float* N, float* P, int width) {
     cudaFree(Pd);
 }
 
+
+// the kernel for matrix multiplication
+__global__ void MatrixMultiplication(float* Md, float* Nd, float* Pd, int width) {
+        int tx = threadIdx.x; 
+        int ty = threadIdx.y; 
+        
+        float sum = 0;
+        for (int i = 0; i < width; ++i) {
+            float a = Md[tx * width + i];
+            float b = Nd[i * width + ty];
+            sum += a * b;
+        }
+        Pd[tx * width + ty] = sum; 
+    }
 
 
 
