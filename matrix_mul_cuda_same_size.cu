@@ -71,19 +71,7 @@ void MatrixMultiplication(float* M, float* N, float* P, int width) {
 }
 
 
-// the kernel for matrix multiplication
-__global__ void MatrixMultiplication(float* Md, float* Nd, float* Pd, int width) {
-        int tx = threadIdx.x; 
-        int ty = threadIdx.y; 
-        
-        float sum = 0;
-        for (int i = 0; i < width; ++i) {
-            float a = Md[tx * width + i];
-            float b = Nd[i * width + ty];
-            sum += a * b;
-        }
-        Pd[tx * width + ty] = sum; 
-    }
+
 
 
 
