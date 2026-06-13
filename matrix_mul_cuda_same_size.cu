@@ -25,6 +25,30 @@ cudaFree() - frees object from device global memory
 
 // the kernel for matrix multiplication
 
+int main() {
+    int width = 4;
+
+    float M[16] = {
+        1, 2, 3, 4,
+        5, 6, 7, 8,
+        9, 10, 11, 12,
+        13, 14, 15, 16
+    };
+
+    float N[16] = {
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1
+    };
+
+    float P[16];
+
+    MatrixMultiplication(M, N, P, width);
+
+    return 0;
+}
+
 __global__ void MatrixMultiplicationKernel(float* Md, float* Nd, float* Pd, int width) {
         int tx = threadIdx.x; 
         int ty = threadIdx.y; 
