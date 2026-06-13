@@ -22,6 +22,23 @@ cudaFree() - frees object from device global memory
 
 // &md is the address of where md is stored on the cpu, and md gives the address of the stored elements inside it
 
+
+// the kernel for matrix multiplication
+
+__global__ void MatrixMultiplicationKernel(float* Md, float* Nd, float* Pd, int width) {
+        int tx = threadIdx.x; 
+        int ty = threadIdx.y; 
+        
+        float sum = 0;
+        for (int i = 0; i < width; ++i) {
+            float a = Md[ty * width + i];
+            float b = Nd[i * width + tx];
+            sum += a * b;
+        }
+        Pd[ty * width + tx] = sum; 
+    }
+
+
 void MatrixMultiplication(float* M, float* N, float* P, int width) {
     float* Md; 
     float* Nd; 
@@ -37,7 +54,11 @@ void MatrixMultiplication(float* M, float* N, float* P, int width) {
     //Copy data from the host to the device
     cudaMemcpy(Md, M, size, cudaMemcpyHostToDevice);
     cudaMemcpy(Nd, N, size, cudaMemcpyHostToDevice);
+    
+    dim3 dimBlock(width, width); 
+    dim3 dimGrid(1, 1); 
 
+    MatrixMultiplicationKernel<<<dimGrid, dimBlock>>>(Md, Nd, Pd, width); 
 
     // copy the product from device to host 
     cudaMemcpy(P, Pd, size, cudaMemcpyDeviceToHost); 
@@ -48,22 +69,4 @@ void MatrixMultiplication(float* M, float* N, float* P, int width) {
     cudaFree(Nd);
     cudaFree(Pd);
 }
-
-
-// the kernel for matrix multiplication
-__global__ void MatrixMultiplication(float* Md, float* Nd, float* Pd, int width) {
-        int tx = threadIdx.x; 
-        int ty = threadIdx.y; 
-        
-        float sum = 0;
-        for (int i = 0; i < width; ++i) {
-            float a = Md[tx * width + i];
-            float b = Nd[i * width + ty];
-            sum += a * b;
-        }
-        Pd[tx * width + ty] = sum; 
-    }
-
-
-
 
