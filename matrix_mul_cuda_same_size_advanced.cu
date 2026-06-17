@@ -9,10 +9,41 @@ __global__ void MatrixMultiplicationKernel(float* Md, float* Nd, float* Pd, int 
     for (int i = 0; i < width; ++i) {
         float a = Md[row * width + i];
         float b = Nd[col + width * i];
-        sum += a + b
+        sum += a * b;
     }
 
-    Pd[row * width][col] = sum; 
+    Pd[row * width + col] = sum; 
+}
+
+void MatrixMultiplication(float* M, float* N, float* P, int width, int tile_width) {
+    float* Md; 
+    float* Nd; 
+    float* Pd; 
+
+    int size = width * width * sizeof(float);
+    // essentially Malloc does something like *&Md = GPU memory
+    // &Md contains the address of Md in the CPU stack
+    // *Md gives the value of the first element it points to. Chaning *Md to something else would just change the value of that memory address. It wouldn;t change what Md points to anyways. We need to change what Md points to now
+
+    cudaMalloc((void**)&Md, size); 
+    cudaMalloc((void**)&Nd, size); 
+    cudaMalloc((void**)&Pd, size); 
+
+    cudaMemcpy(Md, M, size, cudaMemcpyHostToDevice); 
+    cudaMemcpy(Nd, N, size, cudaMemcpyHostToDevice); 
+
+    dim3 dimGrid(width / tile_width, width / tile_width); 
+    dim3 dimBlock(tile_width, tile_width);
+
+    MatrixMultiplicationKernel<<<dimGrid, dimBlock>>>(Md, Nd, Pd, width); 
+
+
+    cudaMemcpy(P, Pd, size, cudaMemcpyDeviceToHost); 
+
+
+    cudaFree(Md); 
+    cudaFree(Nd);
+    cudaFree(Pd);
 }
 
 
