@@ -73,24 +73,31 @@ __global__ void MatrixMultiplicationKernel(float* Md, float* Nd, float* Pd, int 
 
     // The outer loop - phases. 
     // m = which phase we're on, Runs N/TILE_WIDTH times
-
     for (int m = 0; m < Width / Title_Width; ++m) {
 
         // Loading into shared memory
         // If you look at it the access is still basically Row * Width + Col for 1D arrays
+        // Essentially the m * Title_width will move it for every phase
+        // Each thread would load every input in Md and Nd 
+        // In CUDA, ty essentially means the row and the tx means the col 
+        // for Md, the Col = m * Title_Width + tx
+        // For Nd, the Row = m * Title_Width + ty 
+        // m * TILE_WIDTH is what shifts to the next chunk each phase — this is the phase advancing through the input
 
         Mds[ty][tx] = Md[Row * Width + (m * Title_Width + tx)]; 
         Nds[ty][tx] = Nd[(m * Title_Width + ty)* Width + Col]; 
+
+        // wait till all the threads of that particular phase load into their memory
         __syncthreads();
 
+        // Performs the matrixmultiplication for that phase for that set
         for (int k = 0; k < Title_Width; ++k) {
             Pval += Mds[ty][k] * Nds[k][tx]; 
-            __syncthreads()
         }
+         __syncthreads(); 
     }
 
     Pd[Row * Width + Col] = Pval;
-
 
 }
 
@@ -101,17 +108,21 @@ void MatrixMultiplication(float* M, float* N, float* P, int Width, int Title_Wid
     float* Nd; 
     float* Pd;
 
-    int size = Width * Width * sizeof(float)
+    int size = Width * Width * sizeof(float); 
     cudaMalloc((void**)&Md, size); 
     cudaMalloc((void**)&Nd, size); 
     cudaMalloc((void**)&Pd, size); 
 
-    cudaMemcpy(Md, M, size, cudaMemcpyDeviceToHost); 
-    cudaMemcpy(Nd, N, size, cudaMemcpyDeviceToHost); 
+    cudaMemcpy(Md, M, size, cudaMemcpyHostToDevice); 
+    cudaMemcpy(Nd, N, size, cudaMemcpyHostToDevice); 
 
     // here goes the matrix multiplication kernel 
+    dim3 dimGrid(Width / Title_Width, Width / Title_Width);
+    dim3 dimBlock(Title_Width, Title_Width);
 
-    cudaMemcpy(P, Pd, size, cudaMemcpyHostToDevice);
+    MatrixMultiplicationKernel<<<dimGrid, dimBlock>>>(Md, Nd, Pd, Width); 
+
+    cudaMemcpy(P, Pd, size, cudaMemcpyDeviceToHost);
 
     cudaFree(Md); 
     cudaFree(Nd);
