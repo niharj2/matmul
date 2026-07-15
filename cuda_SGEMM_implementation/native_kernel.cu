@@ -6,19 +6,18 @@
 
 __global__ void native_sgemm(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
     
-    // x is the row, y is the col
-    int x = blockIdx.x * blockDim.x + threadIdx.x;
-    int y = blockIdx.y * blockDim.y + threadIdx.y; 
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = blockIdx.y * blockDim.y + threadIdx.y; 
 
     // makes sure we aren't going out of bounds
 
-    if (x < M && y < N) {
+    if (row < M && col < N) {
         float sum = 0; 
         for (int i = 0; i < K; ++i) {
-            sum += A[x * K + i] * B[i * N + y];
+            sum += A[row * K + i] * B[i * N + col];
         }
         
         // Using N instead of K, because the stride becomes N since that's the updated dimension of the matrix 
-        C[x * N + y] = alpha * sum + beta * C[x * N + y];
+        C[row * N + col] = alpha * sum + beta * C[row * N + col];
     }
 }
