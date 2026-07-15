@@ -5,8 +5,10 @@
 // Therefore, dimensions of matric C would be M * N
 
 __global__ void native_sgemm(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
+    
+    // x is the row, y is the col
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y; 
-    int x = blockIdx.x * blockDim.x + threadIdx.x; 
 
     // makes sure we aren't going out of bounds
 
@@ -16,7 +18,7 @@ __global__ void native_sgemm(int M, int N, int K, float* A, float* B, float* C, 
             sum += A[x * K + i] * B[i * N + y];
         }
         
-        // Using N instead of K, because the stride becomes N since that's the updated dimension of the matrix
+        // Using N instead of K, because the stride becomes N since that's the updated dimension of the matrix 
         C[x * N + y] = alpha * sum + beta * C[x * N + y];
     }
 }
