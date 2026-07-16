@@ -4,70 +4,78 @@
 // Dimensooms of matrix B would be K * N 
 // Therefore, dimensions of matric C would be M * N
 
-"""
+// This kernel performs memory coalescing. A warp would execute threads with examples like (5, 8), (6, 8), (7, 8), (8, 8).
+// In the above threads, the x coordinate is the col and the y coordinate is the row
+// 
+//  At one instant, say i = 7, all threads in the warp execute the same instruction.
+// For threads mapped to output coordinates:
+//
+// (row, col) = (8,5), (8,6), (8,7), ...
+//
+// the A access is:
+//
+// A[8][7], A[8][7], A[8][7], ...
+//
+// so every thread accesses the same A element.
+//
+// The B access is:
+//
+// B[7][5], B[7][6], B[7][7], B[7][8], ...
+//
+// so the threads access consecutive elements from row 7 of B.
+// Because B is stored in row-major order, those addresses are consecutive,
+// so the B load is coalesced.
 
-For execution, threads are organised into a group of 32, known as a wrap. A warp is then assigned to a warp scheduler, which is the physical core that executes the instructions
-A SM, has 4 wrap schedulers. The grouping into warps happens based on a consecutive threadId.
 
-Threads inside a block are assigned a linear threadId:
+// The reason threads are organised like that is because the threadId = threadIdx.x + blockDim.x * threadIdx.y and wraps always put continous threadIds together.
 
-threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
-
-A 3D block can be viewed as a stack of 2D grids.
-
-Within each 2D grid, threads are numbered in row-major order:
-    x (columns) changes first, then y (rows).
- 
-After all threads in one 2D slice have been numbered, numbering continues in the next z slice.
-
-This ordering groups neighboring x threads together, which matches row-major memory layout and helps achieve coalesced global memory accesses.
-
-"""
-
-
-"""
-Sequential memory accesses by threads that are part of the same warp can be grouped and executed as one. 
-
-Memory coalescing is NOT defined for one thread.
-
-It is defined for one instruction executed by one warp.
-"""
 
 __global__ void memory_coalesce(int M, int K, int N, float alpha, float beta, float* A, float* B, float* C) {
-    // setting up the row and col coords
+    int row = blockIdx.y * blockDim.y + threadIdx.y; 
+    int col = blockIdx.x * blockDim.x + threadIdx.x; 
 
-    __shared__ float Ads[Title_Width][Title_Width]; 
-    __shared__ float Bds[Title_Width][Title_Width];
-
-    int tx = threadIdx.x; 
-    int ty = threadIdx.y; 
-    int bx = blockIdx.x;
-    int by = blockIdx.y;
-
-    // x represents cols and y represents rows
-    int row = by * blockDim.y + ty;
-    int col = bx * blockDim.x + tx;
-    
-    // making sure we don't go out of memory bounds
+    float sum = 0; 
 
     if (row < M && col < N) {
-        float sum = 0; 
-
-        for (int m = 0; m < Width / Title_Width; m++) {
-            Ads[ty][tx] = A[row * K + (m * Title_Width + tx)];
-            Bds[ty][tx] = B[(m * Title_Width + ty) * N + col];
-        }
-
-        __syncthreads();
-
 
         for (int i = 0; i < K; ++i) {
-            sum += Ads[ty][i] * Bds[i][tx];
+            sum += A[row * K + i] * B[i * N + col]; 
         }
 
-        __syncthreads();
-
-        C[row * N + col] = sum;
+        C[row * N + col] = alpha * sum + beta * C[row * N + col];
     }
-    
+
 }
+
+
+
+// Another way to write this kernel is down below
+
+__global__ void memory_coalesce_alternative(int M, int N, int K, float alpha, float beta, float* A, float* B, float*C) {
+    int row = blockIdx.x * BLOCKSIZE + (threadIdx.x / BLOCKSIZE);
+    int col = blockIdx.y * BLOCKSIZE + (threadIdx.x % BLOCKSIZE);
+
+
+    float sum = 0; 
+
+    if (row < M && col < N) {
+
+        for (int i = 0; i < K; ++i) {
+            sum += A[row * K + i] * B[i * N + col]; 
+        }
+
+        C[row * N + col] = alpha * sum + beta * C[row * N + col];
+    }
+
+}
+
+"""
+This is how we would launch this kernel; 
+
+// gridDim stays the same
+dim3 gridDim(CEIL_DIV(M, 32), CEIL_DIV(N, 32));
+// make blockDim 1-dimensional, but don't change number of threads
+dim3 blockDim(32 * 32);
+sgemm_coalescing<<<gridDim, blockDim>>>(M, N, K, alpha, A, B, beta, C);
+
+"""
