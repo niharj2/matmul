@@ -4,26 +4,34 @@
 // Dimensooms of matrix B would be K * N 
 // Therefore, dimensions of matric C would be M * N
 
+"""
 
-//  For execution, threads are organised into a group of 32, known as a wrap. A warp is then assigned to a warp scheduler, which is the physical core that executes the instructions
-// A SM, has 4 wrap schedulers. The grouping into warps happens based on a consecutive threadId.
+For execution, threads are organised into a group of 32, known as a wrap. A warp is then assigned to a warp scheduler, which is the physical core that executes the instructions
+A SM, has 4 wrap schedulers. The grouping into warps happens based on a consecutive threadId.
 
-// Threads inside a block are assigned a linear threadId:
-//
-// threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
-//
-// A 3D block can be viewed as a stack of 2D grids.
-//
-// Within each 2D grid, threads are numbered in row-major order:
-// x (columns) changes first, then y (rows).
-//
-// After all threads in one 2D slice have been numbered,
-// numbering continues in the next z slice.
-//
-// This ordering groups neighboring x threads together,
-// which matches row-major memory layout and helps achieve
-// coalesced global memory accesses.
+Threads inside a block are assigned a linear threadId:
 
+threadId = threadIdx.x + blockDim.x * threadIdx.y + blockDim.x * blockDim.y * threadIdx.z;
+
+A 3D block can be viewed as a stack of 2D grids.
+
+Within each 2D grid, threads are numbered in row-major order:
+    x (columns) changes first, then y (rows).
+ 
+After all threads in one 2D slice have been numbered, numbering continues in the next z slice.
+
+This ordering groups neighboring x threads together, which matches row-major memory layout and helps achieve coalesced global memory accesses.
+
+"""
+
+
+"""
+Sequential memory accesses by threads that are part of the same warp can be grouped and executed as one. 
+
+Memory coalescing is NOT defined for one thread.
+
+It is defined for one instruction executed by one warp.
+"""
 
 __global__ void memory_coalesce(int M, int K, int N, float alpha, float beta, float* A, float* B, float* C) {
     // setting up the row and col coords
