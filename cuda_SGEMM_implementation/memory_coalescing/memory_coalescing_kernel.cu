@@ -39,6 +39,7 @@ __global__ void memory_coalesce(int M, int K, int N, float alpha, float beta, fl
     if (row < M && col < N) {
 
         for (int i = 0; i < K; ++i) {
+            // Linearise the coordinate to retrives values from A and B
             sum += A[row * K + i] * B[i * N + col]; 
         }
 
