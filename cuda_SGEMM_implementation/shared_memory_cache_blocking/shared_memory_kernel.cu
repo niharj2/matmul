@@ -59,7 +59,58 @@ __global__ void shared_memory_kernel_same_size(int N, float* A, float* B, float*
 
     // Some threads in the final blocks may map outside C.
     if (row < N && col < N) {
-        C[row * N + col] =
-            alpha * sum + beta * C[row * N + col];
+        C[row * N + col] = alpha * sum + beta * C[row * N + col];
     }
+}
+
+// Matrix A dimension = M * K
+// Matrix B dimension = K * N 
+// Product dimension = M * N
+
+__global__ void shared_memory_kernel(int N, int M, int K, float* A, float* B, float* C, float alpha, float beta) {
+    __shared__ float As[TILE_WIDTH][TILE_WIDTH]; 
+    __shared__ float Bs[TILE_WIDTH][TILE_WIDTH];
+
+    int tx = threadIdx.x; 
+    int ty = threadIdx.y; 
+    int bx = blockIdx.x; 
+    int by = blockIdx.y; 
+
+    int row = by * blockDim.y + ty; 
+    int col = bx * blockDim.x + tx;
+
+    float sum = 0;
+    int numTiles = (K + TILE_WIDTH - 1) / TILE_WIDTH; 
+
+    for (int tile = 0; tile < numTiles; ++tile) {
+        // Every thread is reponsible for loading one element per phase
+        int A_col = tile * TILE_WIDTH + tx;
+
+        if (row < M && A_col < K) {
+            As[ty][tx] = A[row * K + A_col];
+        } else {
+            As[ty][tx] = 0;
+        }
+        
+        int B_row = tile * TILE_WIDTH + ty;
+
+        if (B_row < K && col < N) {
+            Bs[ty][tx] = B[B_row * N + col]; 
+        } else {
+            Bs[ty][tx] = 0;
+        }
+
+        __syncthreads();
+
+        for (int i = 0; i < TILE_WIDTH; ++i) {
+            sum += As[ty][i] * Bs[i][tx];
+        }
+
+        __syncthreads();
+    }
+
+    if (row < M && col < N) {
+        C[row * N + col] = alpha * sum + beta * C[row * N + col];
+    }
+
 }
