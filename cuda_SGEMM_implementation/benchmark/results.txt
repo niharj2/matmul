@@ -1,0 +1,87 @@
+SGEMM benchmark results — H200 NVL, CUDA 12.9, 2026-07-18T11:07:12Z
+alpha=1.0 beta=0.5, cuBLAS reference, combined tol (abs<1e-3 OR rel<1e-2), TILE_WIDTH=32
+All four kernels support arbitrary M,N,K -> none excluded.
+
+########## SQUARE (M=N=K) ##########
+=== M=N=K=512 ===
+kernel             time(ms)       GFLOPS        max_err   verdict
+--------------------------------------------------------------------
+native               0.0700       3837.2       1.51e-04   PASS
+coalesce             0.0694       3866.0       1.51e-04   PASS
+coalesce_alt         0.0671       4000.5       1.51e-04   PASS
+shared               0.0478       5620.5       1.51e-04   PASS
+cublas               0.0216      12416.5       0.00e+00   PASS
+
+=== M=N=K=1024 ===
+kernel             time(ms)       GFLOPS        max_err   verdict
+--------------------------------------------------------------------
+native               1.0214       2102.4       0.00e+00   PASS
+coalesce             0.9841       2182.2       0.00e+00   PASS
+coalesce_alt         0.9255       2320.4       0.00e+00   PASS
+shared               0.5474       3923.2       0.00e+00   PASS
+cublas               0.0680      31591.8       0.00e+00   PASS
+
+=== M=N=K=2048 ===
+kernel             time(ms)       GFLOPS        max_err   verdict
+--------------------------------------------------------------------
+native               7.2504       2369.5       0.00e+00   PASS
+coalesce             7.1653       2397.6       0.00e+00   PASS
+coalesce_alt         6.9753       2463.0       0.00e+00   PASS
+shared               4.6856       3666.5       0.00e+00   PASS
+cublas               0.9522      18043.0       0.00e+00   PASS
+
+=== M=N=K=4096 ===
+kernel             time(ms)       GFLOPS        max_err   verdict
+--------------------------------------------------------------------
+native              55.0244       2497.8       0.00e+00   PASS
+coalesce            54.7581       2509.9       0.00e+00   PASS
+coalesce_alt        52.4070       2622.5       0.00e+00   PASS
+shared              38.3854       3580.5       0.00e+00   PASS
+cublas               6.9467      19784.9       0.00e+00   PASS
+
+########## RECTANGULAR (M != N != K) ##########
+=== tall-skinny : M=2048 N=512 K=1024 ===
+kernel             time(ms)       GFLOPS        max_err   verdict
+--------------------------------------------------------------------
+native               0.9901       2168.9       2.44e-04   PASS
+coalesce             0.9426       2278.1       2.44e-04   PASS
+coalesce_alt         0.7885       2723.4       2.44e-04   PASS
+shared               0.5343       4019.3       2.44e-04   PASS
+cublas               0.0637      33720.5       0.00e+00   PASS
+
+=== wide : M=512 N=2048 K=1024 ===
+kernel             time(ms)       GFLOPS        max_err   verdict
+--------------------------------------------------------------------
+native               1.0123       2121.3       0.00e+00   PASS
+coalesce             0.9474       2266.8       0.00e+00   PASS
+coalesce_alt         0.7934       2706.7       0.00e+00   PASS
+shared               0.5319       4037.5       0.00e+00   PASS
+cublas               0.0663      32410.3       0.00e+00   PASS
+
+=== large-K : M=1024 N=1024 K=4096 ===
+kernel             time(ms)       GFLOPS        max_err   verdict
+--------------------------------------------------------------------
+native               3.7862       2268.8       9.50e-04   PASS
+coalesce             3.5001       2454.2       9.50e-04   PASS
+coalesce_alt         3.5235       2437.9       9.50e-04   PASS
+shared               2.3857       3600.5       9.50e-04   PASS
+cublas               0.3311      25946.7       0.00e+00   PASS
+
+=== small-K : M=2048 N=2048 K=256 ===
+kernel             time(ms)       GFLOPS        max_err   verdict
+--------------------------------------------------------------------
+native               0.9957       2156.9       0.00e+00   PASS
+coalesce             0.4772       4500.6       0.00e+00   PASS
+coalesce_alt         0.7710       2785.4       0.00e+00   PASS
+shared               0.5339       4022.1       0.00e+00   PASS
+cublas               0.0588      36508.9       0.00e+00   PASS
+
+=== non-aligned : M=1000 N=768 K=513 ===
+kernel             time(ms)       GFLOPS        max_err   verdict
+--------------------------------------------------------------------
+native               0.2992       2633.9       0.00e+00   PASS
+coalesce             0.2867       2748.5       0.00e+00   PASS
+coalesce_alt         0.2770       2844.4       0.00e+00   PASS
+shared               0.2438       3231.5       0.00e+00   PASS
+cublas               0.0364      21643.7       0.00e+00   PASS
+
