@@ -9,14 +9,7 @@
 // Linearisation is the process of converting a 2D or 3D coordinate
 // into one memory index.
 
-__global__ void shared_memory_kernel_same_size(
-    int N,
-    float* A,
-    float* B,
-    float* C,
-    float alpha,
-    float beta
-) {
+__global__ void shared_memory_kernel_same_size(int N, float* A, float* B, float* C, float alpha,float beta) {
     __shared__ float As[TILE_WIDTH][TILE_WIDTH];
     __shared__ float Bs[TILE_WIDTH][TILE_WIDTH];
 
