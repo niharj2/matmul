@@ -70,8 +70,8 @@ __global__ void memory_coalesce_alternative(int M, int N, int K, float alpha, fl
 
 }
 
-"""
-This is how we would launch this kernel; 
+/*
+This is how we would launch this kernel;
 
 // gridDim stays the same
 dim3 gridDim(CEIL_DIV(M, 32), CEIL_DIV(N, 32));
@@ -79,4 +79,4 @@ dim3 gridDim(CEIL_DIV(M, 32), CEIL_DIV(N, 32));
 dim3 blockDim(32 * 32);
 sgemm_coalescing<<<gridDim, blockDim>>>(M, N, K, alpha, A, B, beta, C);
 
-"""
+*/

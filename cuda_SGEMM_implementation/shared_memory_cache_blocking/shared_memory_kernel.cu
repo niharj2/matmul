@@ -23,7 +23,7 @@ __global__ void shared_memory_kernel_same_size(int N, float* A, float* B, float*
     int col = bx * blockDim.x + tx;
 
     int numTiles = (N + TILE_WIDTH - 1) / TILE_WIDTH;
-    float sum = 0
+    float sum = 0;
 
     // We want every thread to load one element PER PHASE.
     for (int tile = 0; tile < numTiles; ++tile) {
