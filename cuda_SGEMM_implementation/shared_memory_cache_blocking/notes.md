@@ -246,3 +246,6 @@ Each team has:
 The GPU schedules many such teams across the available SMs.
 
 Each team progresses through tile phases independently and never shares its `As` or `Bs` arrays with other blocks.
+
+
+There are three main limits to keeping more active blocks loaded on an SM: register count, warp count and SMEM capacity

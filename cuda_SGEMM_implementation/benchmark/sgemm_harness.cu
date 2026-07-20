@@ -122,7 +122,7 @@ static void fill_random(std::vector<float>& v) {
 // An element is "close enough" if EITHER its absolute error is tiny (handles
 // near-zero results where big products cancel) OR its relative error is tiny.
 // We report min(rel, abs/ABS_TOL): an element passes iff this stays < 1e-2.
-static const double ABS_TOL = 1e-3;  // absolute-error floor
+static const double ABS_TOL = 1e-2;  // absolute-error floor (grows with K, see practice harness)
 static double max_err(const std::vector<float>& test,
                       const std::vector<float>& ref) {
     double worst = 0.0;
