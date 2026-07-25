@@ -1,7 +1,7 @@
 // Adapted from wangzyon/NVIDIA_SGEMM_PRACTICE's sgemm.cu, wired to test the
 // kernels in cuda_SGEMM_implementation instead of that repo's mysgemm_v*.
 //
-// kernel_num: 0=cuBLAS, 1=native, 2=coalesce, 3=coalesce_alt, 4=shared
+// kernel_num: 0=cuBLAS, 1=native, 2=coalesce, 3=shared, 4=1d_blocktiling
 //
 // Usage:
 //   ./sgemm <kernel_num>            square sweep M=N=K = 256, 512, ..., 6144
@@ -93,14 +93,14 @@ int main(int argc, char **argv) {
         printf("Usage:\n"
                "  %s <kernel_num>            square sweep M=N=K=256..6144\n"
                "  %s <kernel_num> M N K      single run at that shape\n"
-               "kernel_num: 0=cublas, 1=native, 2=coalesce, 3=coalesce_alt, 4=shared\n",
+               "kernel_num: 0=cublas, 1=native, 2=coalesce, 3=shared, 4=1d_blocktiling\n",
                argv[0], argv[0]);
         exit(EXIT_FAILURE);
     }
 
     int kernel_num = atoi(argv[1]);
     if (kernel_num < 0 || kernel_num > 4) {
-        printf("Please enter a valid kernel number (0-4).\n");
+        printf("Please enter a valid kernel number (0-4).\n"); // 4 = 1d_blocktiling
         exit(EXIT_FAILURE);
     }
     printf("Select kernel %d.\n", kernel_num);

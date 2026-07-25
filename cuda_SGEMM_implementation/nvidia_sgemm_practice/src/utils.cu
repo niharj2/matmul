@@ -88,16 +88,32 @@ void test_coalesce(int M, int N, int K, float alpha, float *A, float *B, float b
     memory_coalesce<<<grid, block>>>(M, K, N, alpha, beta, A, B, C);
 }
 
-void test_coalesce_alt(int M, int N, int K, float alpha, float *A, float *B, float beta, float *C) {
-    dim3 block(BLOCKSIZE * BLOCKSIZE);
-    dim3 grid(CEIL_DIV(M, BLOCKSIZE), CEIL_DIV(N, BLOCKSIZE));
-    memory_coalesce_alternative<<<grid, block>>>(M, N, K, alpha, beta, A, B, C);
-}
-
 void test_shared(int M, int N, int K, float alpha, float *A, float *B, float beta, float *C) {
     dim3 block(TILE_WIDTH, TILE_WIDTH);
     dim3 grid(CEIL_DIV(N, TILE_WIDTH), CEIL_DIV(M, TILE_WIDTH));
     shared_memory_kernel<<<grid, block>>>(N, M, K, A, B, C, alpha, beta);
+}
+
+// 1D block-tiling config (compile-time). Classic values: 64x64 output tile,
+// BK=8 phase depth, TM=8 outputs/thread -> 512 threads, one element/thread
+// load. Requires M%BM==0, N%BN==0, K%BK==0 (kernel has no boundary checks).
+#ifndef BLK_BM
+#define BLK_BM 64
+#endif
+#ifndef BLK_BN
+#define BLK_BN 64
+#endif
+#ifndef BLK_BK
+#define BLK_BK 8
+#endif
+#ifndef BLK_TM
+#define BLK_TM 8
+#endif
+
+void test_1d_blocktiling(int M, int N, int K, float alpha, float *A, float *B, float beta, float *C) {
+    dim3 block(BLK_BN, BLK_BM / BLK_TM);              // x -> col, y -> row group
+    dim3 grid(CEIL_DIV(N, BLK_BN), CEIL_DIV(M, BLK_BM));
+    one_d_block_tiling_kernel<BLK_BM, BLK_BN, BLK_BK, BLK_TM><<<grid, block>>>(A, B, C, M, N, K, alpha, beta);
 }
 
 void test_kernel(int kernel_num, int M, int N, int K, float alpha, float *A, float *B, float beta, float *C,
@@ -106,8 +122,8 @@ void test_kernel(int kernel_num, int M, int N, int K, float alpha, float *A, flo
         case 0: test_cublas(handle, M, N, K, alpha, A, B, beta, C); break;
         case 1: test_native(M, N, K, alpha, A, B, beta, C); break;
         case 2: test_coalesce(M, N, K, alpha, A, B, beta, C); break;
-        case 3: test_coalesce_alt(M, N, K, alpha, A, B, beta, C); break;
-        case 4: test_shared(M, N, K, alpha, A, B, beta, C); break;
+        case 3: test_shared(M, N, K, alpha, A, B, beta, C); break;
+        case 4: test_1d_blocktiling(M, N, K, alpha, A, B, beta, C); break;
         default: break;
     }
 }

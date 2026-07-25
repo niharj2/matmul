@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run all kernels (0=cublas, 1=native, 2=coalesce, 3=coalesce_alt, 4=shared)
+# Run all kernels (0=cublas, 1=native, 2=coalesce, 3=shared, 4=1d_blocktiling)
 # and save each run's output for plot.py to parse.
 set -e
 cd "$(dirname "$0")"
