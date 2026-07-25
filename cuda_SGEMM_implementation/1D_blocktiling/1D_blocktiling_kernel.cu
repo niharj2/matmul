@@ -45,4 +45,18 @@ __global__ void one_d_block_tiling_kernel(float* A, float* B, float* C, int M, i
     x would range from 0 to BN - 1. Complying with the standard CUDA practise, x would represent to be col
     y would range from 0 to (BM / accum) - 1. y would represent to be row
     */
+
+    __shared__ float As[BM][BK]; 
+    __shared__ float Bs[BK][BN]; 
+
+    // In previous kernels I have always used the 2D form, where we have an x and y. However, as referring to various blog posts and best practices, I have found that this is easier to manupilate data loading 
+    // The best practise here would be to linearise the threadIDs
+    // logically the formula would be threadIdx.x + blockDim.x * threadIdx.y + blockDim.y * blockDim.x * threadIdx.z (The reason this is the formula is because we are flatening by row by row)
+    // The threads are numbered from x - 0 to BN - 1 and y - 0 to BM / TM
+
+    int threadId = threadIdx.x + blockDim.x * threadIdx.y; 
+
+    float sum_accum[accum];
+    int numTiles = (K + BK - 1) / BK;
+
 }
