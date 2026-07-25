@@ -58,5 +58,18 @@ __global__ void one_d_block_tiling_kernel(float* A, float* B, float* C, int M, i
 
     float sum_accum[accum];
     int numTiles = (K + BK - 1) / BK;
+    for (int tile = 0; tile < numTiles; ++tile){
+        Arow = threadId / BK; 
+        Acol = threadId % BK; 
 
+        A[Arow][Acol] = A[Arow * K + tile * BK + Acol];
+        
+        Brow = threadId % BN; 
+        Bcol = threadId / BN;
+
+        B[Brow][Bcol] = B[(tile * BK + Brow) * N+ Bcol];
+        __syncthreads(); 
+
+        
+    }
 }
