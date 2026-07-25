@@ -1,4 +1,9 @@
 __global__ void one_d_block_tiling_kernel(float* A, float* B, float* C, int M, int N, int K, int BM, int BN, int BK, float alpha, float beta, int accum) {
+
+    //Global vs. local coordinates determines which element you load from global memory.
+    //Number of threads vs. number of tile elements determines whether each thread needs to load multiple elements.
+
+
     // The main idea here is that each thread handles multiple outputs. The no of outputs that each thread calculates is given by the parameter accum
     // Matrix A is of size M * K. Matrix B is of size K * N
     // Each block is of size BM * BN. Each tile is of the size BM * BK for matrix A and BK * BN for matrix B. BK is essentially the parallel phase sum reduction we perform. 
@@ -60,16 +65,36 @@ __global__ void one_d_block_tiling_kernel(float* A, float* B, float* C, int M, i
     int numTiles = (K + BK - 1) / BK;
     for (int tile = 0; tile < numTiles; ++tile){
         Arow = threadId / BK; 
-        Acol = threadId % BK; 
+        Acol = threadId % BK;
 
-        A[Arow][Acol] = A[Arow * K + tile * BK + Acol];
+        As[Arow][Acol] = A[Arow * K + tile * BK + Acol];
         
-        Brow = threadId % BN; 
-        Bcol = threadId / BN;
+        Brow = threadId / BN; 
+        Bcol = threadId % BN;
 
-        B[Brow][Bcol] = B[(tile * BK + Brow) * N+ Bcol];
+        Bs[Brow][Bcol] = B[(tile * BK + Brow) * N+ Bcol];
         __syncthreads(); 
 
-        
+        // We would now need 2 outer loops. One loop would refer to the output element we are calculating. For example, if each thread calculates 4 elements then the outper loop would be 0, 1, 2, 3
+
+        for (int i = 0; i < BK; ++i) {
+            // Since we will be using the same B value for all rows each thread is reponsible for calculating, we will cache that value
+            // THIS IS THE WHOLE POINT
+            float B_value = Bs[i][threadIdx.x];
+            for (int index = 0; index < accum; ++index) {
+                sum_accum[index] += As[threadIdx.y * accum + index][i] * B_value;
+            }   
+        }
+        __syncthreads();
+
+        // The above code was block focused. Notice that the threads were also focused on the blocks. In previous implementations of the kernel I always used global mapping of the rows and cols and thats why we never needed this piece of code until now. Do not TRIP on this.
+
+        int globalCol = blockIdx.x * BN + threadIdx.x;
+        int globalRowBase = blockIdx.y * BM + threadIdx.y * accum;
+
+        for (int index = 0; index < accum; ++index) {
+            int globalRow = globalRowBase + index;
+            C[globalRow * N + globalCol] = alpha * sum_accum[index] + beta * C[globalRow * N + globalCol];
+        }
     }
 }
