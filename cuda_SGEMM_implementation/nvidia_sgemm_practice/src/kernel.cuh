@@ -17,3 +17,4 @@
 #include "../../memory_coalescing/memory_coalescing_kernel.cu"
 #include "../../shared_memory_cache_blocking/shared_memory_kernel.cu"
 #include "../../1D_blocktiling/1D_blocktiling_kernel.cu"
+#include "../../2D_blocktiling/2D_blocktiling_kernel.cu"

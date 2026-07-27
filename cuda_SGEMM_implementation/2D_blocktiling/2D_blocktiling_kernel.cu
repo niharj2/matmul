@@ -10,26 +10,29 @@ __global__ void two_d_block_tiling_kernel(int M, int N, int K, float* A, float* 
     int numberOfThreads = (BM * BN) / (accum * accum); 
     int numTiles = (K + BK - 1) / BK;
 
-    float sum_accum[accum][accum]; 
+    float sum_accum[accum][accum];
+    for (int r = 0; r < accum; ++r)
+        for (int c = 0; c < accum; ++c)
+            sum_accum[r][c] = 0.0f;
 
-    for (tile = 0; tile < numTiles; ++tile) {
+    for (int tile = 0; tile < numTiles; ++tile) {
         // Since the number of threads would decrease significantly, we can no longer have a config where the each thread would load only one element. 
         // Therefore, we would have for loops to load these elements. The number of elements we would load in one go would be BM * BK for As and BK * BN 
         int numAelements = BM * BK;
         int loading_A_phases = (numAelements + numberOfThreads - 1) / numberOfThreads;
         // AN IMPORTANT THING TO REMEMBER HERE IS THIS CONFIG WOULD WORK ONLY FOR THE CASE WHERE BLOCKDIM.X == BK; 
-        for (phase = 0; phase < loading_A_phases; ++phase) {
-            Arow = (phase * BK) + threadIdx.y
-            Acol = threadIdx.x
+        for (int phase = 0; phase < loading_A_phases; ++phase) {
+            int Arow = (phase * BK) + threadIdx.y;
+            int Acol = threadIdx.x;
             As[Arow][Acol] = A[(BM * blockIdx.y + Arow) * K + tile * BK + Acol];
         }
 
         int numBelements = BK * BN; 
         int loading_B_phases = (numBelements + numberOfThreads - 1) / numberOfThreads; 
-        for (phase = 0; phase < loading_B_phases; ++phase) {
-            Brow = threadIdx.y; 
-            Bcol = (phase * BK) + threadIdx.x;
-            Bs[Brow][Bcol] = B[(tile * BK + B_row) * N + (BN * blockIdx.x + Bcol)]
+        for (int phase = 0; phase < loading_B_phases; ++phase) {
+            int Brow = threadIdx.y;
+            int Bcol = (phase * BK) + threadIdx.x;
+            Bs[Brow][Bcol] = B[(tile * BK + Brow) * N + (BN * blockIdx.x + Bcol)];
         }
 
         __syncthreads();
@@ -42,9 +45,9 @@ __global__ void two_d_block_tiling_kernel(int M, int N, int K, float* A, float* 
             }
 
             for (int row_a_index = 0; row_a_index < accum; ++row_a_index) {
-                A_cached_value = As[threadIdx.y * accum + row_a_index][i];
+                float A_cached_value = As[threadIdx.y * accum + row_a_index][i];
                 for (int j = 0; j < accum; ++j) {
-                    sum[row_a_index][j] += A_cached_value * B_reg[j];
+                    sum_accum[row_a_index][j] += A_cached_value * B_reg[j];
                 }
             }
         }
