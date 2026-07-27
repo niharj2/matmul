@@ -1,1 +1,0 @@
-Very simple idea: Make one thread compute multiple products to make sure we don't load elements repeteadly
