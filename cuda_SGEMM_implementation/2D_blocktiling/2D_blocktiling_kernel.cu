@@ -8,7 +8,9 @@ __global__ void two_d_block_tiling_kernel(int M, int N, int K, float* A, float* 
 
     int threadId = threadIdx.x + blockDim.x * threadIdx.y;
     int numberOfThreads = (BM * BN) / (accum * accum); 
-    int numTiles = (K + BK - 1) / BK; 
+    int numTiles = (K + BK - 1) / BK;
+
+    float sum_accum[accum][accum]; 
 
     for (tile = 0; tile < numTiles; ++tile) {
         // Since the number of threads would decrease significantly, we can no longer have a config where the each thread would load only one element. 
@@ -28,6 +30,23 @@ __global__ void two_d_block_tiling_kernel(int M, int N, int K, float* A, float* 
             Brow = threadIdx.y; 
             Bcol = (phase * BK) + threadIdx.x;
             Bs[Brow][Bcol] = B[(tile * BK + B_row) * N + (BN * blockIdx.x + Bcol)]
+        }
+
+        __syncthreads();
+
+        // computing the values
+        for (int i = 0; i < BK; ++i) {
+            float B_reg[accum]; 
+            for (int col_b_index = 0; col_b_index < accum; ++col_b_index) {
+                B_reg[col_b_index] = Bs[i][threadIdx.x * accum + col_b_index];
+            }
+
+            for (int row_a_index = 0; row_a_index < accum; ++row_a_index) {
+                A_cached_value = As[threadIdx.y * accum + row_a_index][i];
+                for (int j = 0; j < accum; ++j) {
+                    sum[row_a_index][j] += A_cached_value * B_reg[j];
+                }
+            }
         }
     }
 
