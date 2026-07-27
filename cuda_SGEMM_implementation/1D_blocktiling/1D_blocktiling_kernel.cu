@@ -92,7 +92,6 @@ __global__ void one_d_block_tiling_kernel(float* A, float* B, float* C, int M, i
         __syncthreads();
 
         // The above code was block focused. Notice that the threads were also focused on the blocks. In previous implementations of the kernel I always used global mapping of the rows and cols and thats why we never needed this piece of code until now. Do not TRIP on this
-
     }
 
     int globalCol = blockIdx.x * BN + threadIdx.x;

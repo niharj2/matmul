@@ -48,6 +48,17 @@ __global__ void two_d_block_tiling_kernel(int M, int N, int K, float* A, float* 
                 }
             }
         }
+        __syncthreads();
     }
 
+    int globalColBase = blockIdx.x * BN + threadIdx.x * accum;
+    int globalRowBase = blockIdx.y * BM + threadIdx.y * accum;
+
+    for (int row_index = 0; row_index < accum; ++row_index) {
+        for (int col_index = 0; col_index < accum; ++col_index) {
+            int globalRow = globalRowBase + row_index;
+            int globalCol = globalColBase + col_index;
+            C[globalRow * N + globalCol] = alpha * sum_accum[row_index][col_index] + beta * C[globalRow * N + globalCol];
+        }
+    }
 }
