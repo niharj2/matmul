@@ -5,8 +5,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import MultipleLocator
 
-NAMES = {0: "cublas", 1: "native", 2: "coalesce", 3: "shared", 4: "1d_blocktiling"}
-COLORS = {0: "k", 1: "r", 2: "g", 3: "b", 4: "m"}
+NAMES = {0: "cublas", 1: "native", 2: "coalesce", 3: "shared", 4: "1d_blocktiling", 5: "2d_blocktiling"}
+COLORS = {0: "k", 1: "r", 2: "g", 3: "b", 4: "m", 5: "c"}
 
 
 def parse_file(file):

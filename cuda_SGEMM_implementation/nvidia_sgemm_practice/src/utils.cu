@@ -116,6 +116,29 @@ void test_1d_blocktiling(int M, int N, int K, float alpha, float *A, float *B, f
     one_d_block_tiling_kernel<BLK_BM, BLK_BN, BLK_BK, BLK_TM><<<grid, block>>>(A, B, C, M, N, K, alpha, beta);
 }
 
+// 2D block-tiling config (compile-time). Each thread computes TM x TM outputs.
+// Kernel constraint: blockDim.x == BK and BM == BN == TM * BK, so block is
+// (BM/TM, BN/TM) = (BK, BK). Values 128/128/16/8 -> 16x16 = 256 threads.
+// Requires M%BM==0, N%BN==0, K%BK==0 (no boundary checks).
+#ifndef BLK2_BM
+#define BLK2_BM 128
+#endif
+#ifndef BLK2_BN
+#define BLK2_BN 128
+#endif
+#ifndef BLK2_BK
+#define BLK2_BK 16
+#endif
+#ifndef BLK2_TM
+#define BLK2_TM 8
+#endif
+
+void test_2d_blocktiling(int M, int N, int K, float alpha, float *A, float *B, float beta, float *C) {
+    dim3 block(BLK2_BM / BLK2_TM, BLK2_BN / BLK2_TM);   // (BK, BK)
+    dim3 grid(CEIL_DIV(N, BLK2_BN), CEIL_DIV(M, BLK2_BM));
+    two_d_block_tiling_kernel<BLK2_BM, BLK2_BN, BLK2_BK, BLK2_TM><<<grid, block>>>(M, N, K, A, B, C, alpha, beta);
+}
+
 void test_kernel(int kernel_num, int M, int N, int K, float alpha, float *A, float *B, float beta, float *C,
                  cublasHandle_t handle) {
     switch (kernel_num) {
@@ -124,6 +147,7 @@ void test_kernel(int kernel_num, int M, int N, int K, float alpha, float *A, flo
         case 2: test_coalesce(M, N, K, alpha, A, B, beta, C); break;
         case 3: test_shared(M, N, K, alpha, A, B, beta, C); break;
         case 4: test_1d_blocktiling(M, N, K, alpha, A, B, beta, C); break;
+        case 5: test_2d_blocktiling(M, N, K, alpha, A, B, beta, C); break;
         default: break;
     }
 }

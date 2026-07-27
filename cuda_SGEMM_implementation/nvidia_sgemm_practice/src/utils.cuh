@@ -17,6 +17,6 @@ void print_matrix(const float *A, int M, int N);
 bool verify_matrix(float *mat1, float *mat2, int N);
 
 // ---- Kernel dispatch ----
-// kernel_num: 0=cuBLAS, 1=native, 2=coalesce, 3=shared, 4=1d_blocktiling
+// kernel_num: 0=cuBLAS, 1=native, 2=coalesce, 3=shared, 4=1d_blocktiling, 5=2d_blocktiling
 void test_kernel(int kernel_num, int M, int N, int K, float alpha, float *A, float *B, float beta, float *C,
                  cublasHandle_t handle);
