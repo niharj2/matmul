@@ -61,7 +61,7 @@
 static void launch_native(int M, int N, int K, float alpha, float beta,
                           const float* A, const float* B, float* C) {
     dim3 block(32, 32);
-    dim3 grid(CEIL_DIV(N, 32), CEIL_DIV(M, 32));  // x->col (N), y->row (M)
+    dim3 grid(CEIL_DIV(M, 32), CEIL_DIV(N, 32));  // x->row (M), y->col (N)
     native_sgemm<<<grid, block>>>(M, N, K, (float*)A, (float*)B, C, alpha, beta);
 }
 
