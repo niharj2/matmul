@@ -71,7 +71,7 @@ def check_guards():
     return ok
 
 
-def benchmark(size=2048, iters=50):
+def benchmark(size=4096, iters=50):
     print("=" * 60)
     print(f"3) Speed vs torch.matmul  (M=N=K={size}, {iters} iters)")
     print("=" * 60)
@@ -80,7 +80,7 @@ def benchmark(size=2048, iters=50):
     flop = 2.0 * size * size * size
 
     def timed(fn):
-        for _ in range(3):  # warmup
+        for _ in range(5):  # warmup
             fn()
         torch.cuda.synchronize()
         start = torch.cuda.Event(enable_timing=True)
@@ -93,12 +93,29 @@ def benchmark(size=2048, iters=50):
         ms = start.elapsed_time(end) / iters
         return ms, flop / (ms * 1e6)  # ms, GFLOPS
 
+    # Is torch allowed to use TF32 (i.e. the tensor-core path) for fp32 matmul?
+    print(f"  torch.backends.cuda.matmul.allow_tf32 = "
+          f"{torch.backends.cuda.matmul.allow_tf32}")
+
     mine_ms, mine_gf = timed(lambda: ext.mat_mul(a, b))
-    torch_ms, torch_gf = timed(lambda: a @ b)
-    print(f"  nihar_mat_mul : {mine_ms:8.3f} ms   {mine_gf:9.1f} GFLOPS")
-    print(f"  torch.matmul  : {torch_ms:8.3f} ms   {torch_gf:9.1f} GFLOPS")
-    print(f"  --> torch is {mine_ms / torch_ms:.1f}x faster "
-          f"(expected; it uses cuBLAS + tensor cores)\n")
+
+    # Plain FP32 cuBLAS -- CUDA cores, NO tensor cores.
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.set_float32_matmul_precision("highest")
+    fp32_ms, fp32_gf = timed(lambda: a @ b)
+
+    # TF32 -- the tensor-core path (lower-precision fp32 mantissa).
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.set_float32_matmul_precision("high")
+    tf32_ms, tf32_gf = timed(lambda: a @ b)
+
+    print(f"  nihar_mat_mul (2D kernel)       : {mine_ms:8.3f} ms   {mine_gf:10.1f} GFLOPS")
+    print(f"  torch.matmul  FP32 (no TF32)    : {fp32_ms:8.3f} ms   {fp32_gf:10.1f} GFLOPS")
+    print(f"  torch.matmul  TF32 (tensor core): {tf32_ms:8.3f} ms   {tf32_gf:10.1f} GFLOPS")
+    print(f"  --> vs plain FP32 cuBLAS, torch is {mine_ms / fp32_ms:.1f}x faster.")
+    print(f"  --> with TF32 tensor cores, torch is {mine_ms / tf32_ms:.1f}x faster.")
+    print(f"  Note: torch does NOT use tensor cores for fp32 by default"
+          f" (allow_tf32=False); the TF32 line above is the tensor-core path.\n")
 
 
 if __name__ == "__main__":
