@@ -15,9 +15,9 @@ __global__ void shared_memory_kernel_same_size(
 
 
 __global__ void shared_memory_kernel(
-    int N, 
-    int M, 
-    int K, 
+    int M,
+    int N,
+    int K,
     float* A, 
     float* B, 
     float* C, 

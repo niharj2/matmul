@@ -85,13 +85,13 @@ void test_native(int M, int N, int K, float alpha, float *A, float *B, float bet
 void test_coalesce(int M, int N, int K, float alpha, float *A, float *B, float beta, float *C) {
     dim3 block(32, 32);
     dim3 grid(CEIL_DIV(N, 32), CEIL_DIV(M, 32));
-    memory_coalesce<<<grid, block>>>(M, K, N, alpha, beta, A, B, C);
+    memory_coalesce<<<grid, block>>>(M, N, K, A, B, C, alpha, beta);
 }
 
 void test_shared(int M, int N, int K, float alpha, float *A, float *B, float beta, float *C) {
     dim3 block(TILE_WIDTH, TILE_WIDTH);
     dim3 grid(CEIL_DIV(N, TILE_WIDTH), CEIL_DIV(M, TILE_WIDTH));
-    shared_memory_kernel<<<grid, block>>>(N, M, K, A, B, C, alpha, beta);
+    shared_memory_kernel<<<grid, block>>>(M, N, K, A, B, C, alpha, beta);
 }
 
 // 1D block-tiling config (compile-time). Classic values: 64x64 output tile,
@@ -113,7 +113,7 @@ void test_shared(int M, int N, int K, float alpha, float *A, float *B, float bet
 void test_1d_blocktiling(int M, int N, int K, float alpha, float *A, float *B, float beta, float *C) {
     dim3 block(BLK_BN, BLK_BM / BLK_TM);              // x -> col, y -> row group
     dim3 grid(CEIL_DIV(N, BLK_BN), CEIL_DIV(M, BLK_BM));
-    one_d_block_tiling_kernel<BLK_BM, BLK_BN, BLK_BK, BLK_TM><<<grid, block>>>(A, B, C, M, N, K, alpha, beta);
+    one_d_block_tiling_kernel<BLK_BM, BLK_BN, BLK_BK, BLK_TM><<<grid, block>>>(M, N, K, A, B, C, alpha, beta);
 }
 
 // 2D block-tiling config (compile-time). Each thread computes TM x TM outputs.

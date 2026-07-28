@@ -30,7 +30,7 @@
 // The reason threads are organised like that is because the threadId = threadIdx.x + blockDim.x * threadIdx.y and wraps always put continous threadIds together.
 
 
-__global__ void memory_coalesce(int M, int K, int N, float alpha, float beta, float* A, float* B, float* C) {
+__global__ void memory_coalesce(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
     int row = blockIdx.y * blockDim.y + threadIdx.y; 
     int col = blockIdx.x * blockDim.x + threadIdx.x; 
 
@@ -52,7 +52,7 @@ __global__ void memory_coalesce(int M, int K, int N, float alpha, float beta, fl
 
 // Another way to write this kernel is down below
 
-__global__ void memory_coalesce_alternative(int M, int N, int K, float alpha, float beta, float* A, float* B, float*C) {
+__global__ void memory_coalesce_alternative(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
     int row = blockIdx.x * BLOCKSIZE + (threadIdx.x / BLOCKSIZE);
     int col = blockIdx.y * BLOCKSIZE + (threadIdx.x % BLOCKSIZE);
 

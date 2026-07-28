@@ -4,15 +4,19 @@
 
 #include <cuda_runtime.h>
 
-__global__ void one_d_block_tiling_kernel(
-    float* A, 
-    float* B, 
-    float* C, 
-    int M, 
-    int N, 
-    int K, 
-    float alpha, 
+// The kernel itself is a template, so it cannot be declared here and defined
+// elsewhere -- the definition must be visible where it is instantiated. This
+// header exposes the plain host wrapper instead; the template is instantiated
+// inside 1D_blocktiling_kernel.cu, which is where the tile config lives.
+void launch_1d(
+    int M,
+    int N,
+    int K,
+    float* A,
+    float* B,
+    float* C,
+    float alpha,
     float beta
-); 
+);
 
 #endif

@@ -69,8 +69,7 @@ static void launch_coalesce(int M, int N, int K, float alpha, float beta,
                             const float* A, const float* B, float* C) {
     dim3 block(32, 32);
     dim3 grid(CEIL_DIV(N, 32), CEIL_DIV(M, 32));
-    // signature: (int M, int K, int N, float alpha, float beta, A, B, C)
-    memory_coalesce<<<grid, block>>>(M, K, N, alpha, beta, (float*)A, (float*)B, C);
+    memory_coalesce<<<grid, block>>>(M, N, K, (float*)A, (float*)B, C, alpha, beta);
 }
 
 static void launch_coalesce_alt(int M, int N, int K, float alpha, float beta,
@@ -79,17 +78,15 @@ static void launch_coalesce_alt(int M, int N, int K, float alpha, float beta,
     // In the kernel: grid.x maps to rows (M), grid.y maps to cols (N).
     dim3 block(BLOCKSIZE * BLOCKSIZE);
     dim3 grid(CEIL_DIV(M, BLOCKSIZE), CEIL_DIV(N, BLOCKSIZE));
-    // signature: (int M, int N, int K, float alpha, float beta, A, B, C)
-    memory_coalesce_alternative<<<grid, block>>>(M, N, K, alpha, beta,
-                                                 (float*)A, (float*)B, C);
+    memory_coalesce_alternative<<<grid, block>>>(M, N, K, (float*)A, (float*)B,
+                                                 C, alpha, beta);
 }
 
 static void launch_shared(int M, int N, int K, float alpha, float beta,
                           const float* A, const float* B, float* C) {
     dim3 block(TILE_WIDTH, TILE_WIDTH);
     dim3 grid(CEIL_DIV(N, TILE_WIDTH), CEIL_DIV(M, TILE_WIDTH));
-    // signature: (int N, int M, int K, A, B, C, alpha, beta)
-    shared_memory_kernel<<<grid, block>>>(N, M, K, (float*)A, (float*)B, C,
+    shared_memory_kernel<<<grid, block>>>(M, N, K, (float*)A, (float*)B, C,
                                           alpha, beta);
 }
 

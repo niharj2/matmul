@@ -5,26 +5,26 @@
 #include <cuda_runtime.h>
 
 __global__ void memory_coalesce(
-    int M, 
-    int K, 
-    int N, 
-    float alpha, 
-    float beta, 
-    float* A, 
-    float* B, 
-    float* C
+    int M,
+    int N,
+    int K,
+    float* A,
+    float* B,
+    float* C,
+    float alpha,
+    float beta
 );
 
 
 __global__ void memory_coalesce_alternative(
-    int M, 
-    int N, 
-    int K, 
-    float alpha, 
-    float beta, 
-    float* A, 
-    float* B, 
-    float*C
-); 
+    int M,
+    int N,
+    int K,
+    float* A,
+    float* B,
+    float* C,
+    float alpha,
+    float beta
+);
 
 #endif

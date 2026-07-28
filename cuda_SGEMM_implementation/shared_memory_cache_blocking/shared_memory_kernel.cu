@@ -67,7 +67,7 @@ __global__ void shared_memory_kernel_same_size(int N, float* A, float* B, float*
 // Matrix B dimension = K * N 
 // Product dimension = M * N
 
-__global__ void shared_memory_kernel(int N, int M, int K, float* A, float* B, float* C, float alpha, float beta) {
+__global__ void shared_memory_kernel(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
     __shared__ float As[TILE_WIDTH][TILE_WIDTH]; 
     __shared__ float Bs[TILE_WIDTH][TILE_WIDTH];
 

@@ -65,3 +65,10 @@ __global__ void two_d_block_tiling_kernel(int M, int N, int K, float* A, float* 
         }
     }
 }
+
+
+void launch_2d(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
+    dim3 block(128/8, 128/8);                    // (16,16) = 256 threads
+    dim3 grid((N+127)/128, (M+127)/128);
+    two_d_block_tiling_kernel<128,128,16,8><<<grid, block>>>(M, N, K, A, B, C, alpha, beta);
+}

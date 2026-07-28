@@ -1,7 +1,7 @@
 // BM/BN/BK/accum are template params (not runtime args) because __shared__
 // arrays and sum_accum[] must be sized at compile time.
 template <int BM, int BN, int BK, int accum>
-__global__ void one_d_block_tiling_kernel(float* A, float* B, float* C, int M, int N, int K, float alpha, float beta) {
+__global__ void one_d_block_tiling_kernel(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
 
     //Global vs. local coordinates determines which element you load from global memory.
     //Number of threads vs. number of tile elements determines whether each thread needs to load multiple elements.
