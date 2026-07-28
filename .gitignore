@@ -1,1 +1,17 @@
+# Python
+__pycache__/
+*.egg-info/
+*.pyc
+
+# Build artifacts
+build/
+*.so
+*.o
+
+# Compiled benchmark binaries
+cuda_SGEMM_implementation/benchmark/sgemm
+cuda_SGEMM_implementation/nvidia_sgemm_practice/sgemm
+
+# Editor
 .ipynb_checkpoints/
+.vscode/
