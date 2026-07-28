@@ -1,9 +1,11 @@
+#ifndef native_kernel 
+#define native_kernel
+
 #pragma once
 
 #include <cuda_runtime.h>
 
-
-__global__ void two_d_block_tiling_kernel(
+__global__ void native_sgemm(
     int M, 
     int N, 
     int K, 
@@ -13,3 +15,5 @@ __global__ void two_d_block_tiling_kernel(
     float alpha, 
     float beta
 );
+
+#endif

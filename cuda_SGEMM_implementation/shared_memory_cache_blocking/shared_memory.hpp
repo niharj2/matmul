@@ -1,3 +1,5 @@
+#ifndef shared_memory
+#define shared_memory
 #pragma once
 
 #include <cuda_runtime.h>
@@ -23,4 +25,4 @@ __global__ void shared_memory_kernel(
     float beta
 );
 
-
+#endif
