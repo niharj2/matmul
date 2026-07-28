@@ -25,8 +25,21 @@ All matrices are row-major.
 
 ## Results
 
-Square matrices, `M = N = K`, H200, FP32. Every kernel is verified against
-cuBLAS before it is timed.
+Square matrices, `M = N = K` from 256 to 6144, H200, FP32. Every kernel is
+verified against cuBLAS before it is timed.
+
+![SGEMM kernel comparison](cuda_SGEMM_implementation/nvidia_sgemm_practice/images/all_kernels.png)
+
+Three things I'd point out in this plot:
+
+- **The red line along the bottom is the naive kernel.** It never leaves ~200
+  GFLOPS at any size. Uncoalesced access is so expensive that nothing else
+  about the kernel matters.
+- **Everything plateaus after ~2048.** Below that the matrices are too small to
+  fill the GPU, so you're measuring launch overhead and idle SMs rather than
+  the kernel. This is why I quote my numbers at 4096.
+- **The two spiky lines (black cuBLAS, cyan 2D) are contention**, not real
+  behaviour — see the note below the table.
 
 | Kernel | 1024 | 2048 | 4096 | 6144 | % of cuBLAS @ 4096 |
 |---|---|---|---|---|---|
@@ -483,13 +496,13 @@ make
 ./sgemm 4096 4096 4096 all
 ```
 
-Full sweep across all six kernels:
+Full sweep across all six kernels, which is what produces the plot at the top:
 
 ```bash
 cd cuda_SGEMM_implementation/nvidia_sgemm_practice
 make
-./run.sh
-python plot.py
+./run.sh          # writes test/test_kernel_{0..5}.txt
+python plot.py    # writes images/all_kernels.png
 ```
 
 PyTorch extension:
