@@ -7,7 +7,6 @@ __global__ void two_d_block_tiling_kernel(int M, int N, int K, float* A, float* 
 
     // block will be launched as dim block3(BM / accum, BN / accum) because now we are dealing with 2D block tiling
 
-    int threadId = threadIdx.x + blockDim.x * threadIdx.y;
     int numberOfThreads = (BM * BN) / (accum * accum); 
     int numTiles = (K + BK - 1) / BK;
 
