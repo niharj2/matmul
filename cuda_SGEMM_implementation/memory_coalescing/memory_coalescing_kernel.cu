@@ -1,3 +1,4 @@
+#include "memory_coalescing.hpp"
 // Implementing the native kernel but using memory coalescing this time
 
 // Dimensions of matrix A would be M * K
@@ -62,12 +63,24 @@ __global__ void memory_coalesce_alternative(int M, int N, int K, float* A, float
     if (row < M && col < N) {
 
         for (int i = 0; i < K; ++i) {
-            sum += A[row * K + i] * B[i * N + col]; 
+            sum += A[row * K + i] * B[i * N + col];
         }
 
         C[row * N + col] = alpha * sum + beta * C[row * N + col];
     }
 
+}
+
+void launch_coalesce(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
+    dim3 block(32, 32);
+    dim3 grid((N + 31) / 32, (M + 31) / 32);
+    memory_coalesce<<<grid, block>>>(M, N, K, A, B, C, alpha, beta);
+}
+
+void launch_coalesce_alt(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
+    dim3 block(BLOCKSIZE * BLOCKSIZE);
+    dim3 grid((M + BLOCKSIZE - 1) / BLOCKSIZE, (N + BLOCKSIZE - 1) / BLOCKSIZE);
+    memory_coalesce_alternative<<<grid, block>>>(M, N, K, A, B, C, alpha, beta);
 }
 
 /*

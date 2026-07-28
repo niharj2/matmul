@@ -1,3 +1,4 @@
+#include "native_kernel.hpp"
 // Implementing a native CUDA SGEMM kernel. SGEMM performs C = αAB+βC at single (=32b) precision.
 
 // Dimensions of matrix A would be M * K
@@ -20,4 +21,10 @@ __global__ void native_sgemm(int M, int N, int K, float* A, float* B, float* C, 
         // Using N instead of K, because the stride becomes N since that's the updated dimension of the matrix 
         C[row * N + col] = alpha * sum + beta * C[row * N + col];
     }
+}
+
+void launch_native(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
+    dim3 block(32, 32);
+    dim3 grid((M + 31) / 32, (N + 31) / 32);
+    native_sgemm<<<grid, block>>>(M, N, K, A, B, C, alpha, beta);
 }

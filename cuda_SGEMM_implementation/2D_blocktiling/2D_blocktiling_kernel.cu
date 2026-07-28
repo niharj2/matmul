@@ -1,3 +1,4 @@
+#include "two_d_block_tiling.hpp"
 // The idea is the same as 1D but instead of 1 thread just owning accum no of elements, 1 thread instead now has accum * accum elements
 template <int BM, int BN, int BK, int accum>
 __global__ void two_d_block_tiling_kernel(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {

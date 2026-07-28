@@ -1,3 +1,4 @@
+#include "one_d_block_tiling.hpp"
 // BM/BN/BK/accum are template params (not runtime args) because __shared__
 // arrays and sum_accum[] must be sized at compile time.
 template <int BM, int BN, int BK, int accum>
@@ -101,4 +102,10 @@ __global__ void one_d_block_tiling_kernel(int M, int N, int K, float* A, float* 
         int globalRow = globalRowBase + index;
         C[globalRow * N + globalCol] = alpha * sum_accum[index] + beta * C[globalRow * N + globalCol];
     }
+}
+
+void launch_1d(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
+    dim3 block(64, 64 / 8);
+    dim3 grid((N + 63) / 64, (M + 63) / 64);
+    one_d_block_tiling_kernel<64, 64, 8, 8><<<grid, block>>>(M, N, K, A, B, C, alpha, beta);
 }

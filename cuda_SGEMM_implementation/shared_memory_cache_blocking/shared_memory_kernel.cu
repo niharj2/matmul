@@ -1,3 +1,4 @@
+#include "shared_memory.hpp"
 // Do not get confused between the global index and linearisation.
 // By global index, I mean the global index of the thread.
 // Because CUDA divides the grid into different blocks, thread indices
@@ -113,4 +114,10 @@ __global__ void shared_memory_kernel(int M, int N, int K, float* A, float* B, fl
         C[row * N + col] = alpha * sum + beta * C[row * N + col];
     }
 
+}
+
+void launch_shared(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
+    dim3 block(TILE_WIDTH, TILE_WIDTH);
+    dim3 grid((N + TILE_WIDTH - 1) / TILE_WIDTH, (M + TILE_WIDTH - 1) / TILE_WIDTH);
+    shared_memory_kernel<<<grid, block>>>(M, N, K, A, B, C, alpha, beta);
 }
