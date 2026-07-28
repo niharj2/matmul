@@ -4,6 +4,8 @@
 #pragma once
 
 #include <cuda_runtime.h>
+#include <cstdio>
+#include <cstdlib>
 
 
 // The kernel itself is a template, so it cannot be declared here and defined
