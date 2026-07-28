@@ -1,13 +1,20 @@
 from setuptools import setup
-from torch.utils.cpp_extension import BuildExtension, CppExtension
+from torch.utils.cpp_extension import BuildExtension, CUDAExtension
 
 
 setup(
     name = "nihar_mat_mul", # Name of the python package
     ext_modules=[
-        CppExtension(
-            "nihar_mat_mul._cpp", # Module name as import in python
-            ["custom_ops.cpp"]
+        CUDAExtension(
+            "nihar_mat_mul", # Module name as import in python
+            [
+                "custom_ops.cpp",
+                "../cuda_SGEMM_implementation/2D_blocktiling/2D_blocktiling_kernel.cu",
+            ],
+            extra_compile_args={
+                "cxx": ["-O3"],
+                "nvcc": ["-O3", "-arch=sm_90"],
+            },
         ),
     ],
 

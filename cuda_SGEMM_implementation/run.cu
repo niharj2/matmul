@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include "run.hpp"
 
 #include "1D_blocktiling/one_d_block_tiling.hpp"
 #include "2D_blocktiling/two_d_block_tiling.hpp"
