@@ -6,8 +6,8 @@
 
 __global__ void native_sgemm(int M, int N, int K, float* A, float* B, float* C, float alpha, float beta) {
     
-    int col = blockIdx.x * blockDim.x + threadIdx.x;
-    int row = blockIdx.y * blockDim.y + threadIdx.y; 
+    int col = blockIdx.y * blockDim.y + threadIdx.y;
+    int row = blockIdx.x * blockDim.x + threadIdx.x; 
 
     // makes sure we aren't going out of bounds
 
