@@ -42,8 +42,14 @@ def main():
 
     save_dir = os.path.join(root, "images")
     os.makedirs(save_dir, exist_ok=True)
-    plt.savefig(os.path.join(save_dir, "all_kernels.png"))
-    print(f"saved {os.path.join(save_dir, 'all_kernels.png')}")
+    # Optional output filename: `python plot.py <name>` (default all_kernels.png).
+    import sys
+    fname = sys.argv[1] if len(sys.argv) > 1 else "all_kernels.png"
+    if not fname.endswith(".png"):
+        fname += ".png"
+    out = os.path.join(save_dir, fname)
+    plt.savefig(out)
+    print(f"saved {out}")
 
 
 if __name__ == "__main__":
