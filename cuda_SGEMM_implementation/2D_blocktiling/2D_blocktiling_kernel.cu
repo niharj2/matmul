@@ -43,7 +43,9 @@ __global__ void two_d_block_tiling_kernel(int M, int N, int K, float* A, float* 
             for (int col_b_index = 0; col_b_index < accum; ++col_b_index) {
                 B_reg[col_b_index] = Bs[i][threadIdx.x * accum + col_b_index];
             }
-
+            
+            // Here, instead of cashing single A value, we could load accum no of values into register
+            // However, this prolly won't increase performance by much since A values also cached and reused already
             for (int row_a_index = 0; row_a_index < accum; ++row_a_index) {
                 float A_cached_value = As[threadIdx.y * accum + row_a_index][i];
                 for (int j = 0; j < accum; ++j) {
