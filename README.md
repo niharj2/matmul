@@ -3,7 +3,7 @@
 SGEMM performs `C = alpha*A*B + beta*C` at single (32-bit) precision.
 
 I wrote six versions of this kernel, starting from the most obvious one and
-optimising step by step to **54x faster**, which is **~51% of FP32 cuBLAS** on
+optimising step by step to **55x faster**, which is **~53% of FP32 cuBLAS** on
 an H200. Then I wrapped the fastest one as a PyTorch C++/CUDA extension so I
 can call it from Python like any other torch op.
 
@@ -28,59 +28,73 @@ All matrices are row-major.
 Square matrices, `M = N = K` from 256 to 6144, H200, FP32. Every kernel is
 verified against cuBLAS before it is timed.
 
-![SGEMM kernel comparison](cuda_SGEMM_implementation/nvidia_sgemm_practice/images/all_kernels.png)
+![SGEMM kernel comparison](cuda_SGEMM_implementation/nvidia_sgemm_practice/images/all_kernels_not_busy.png)
 
 Three things I'd point out in this plot:
 
-- **The red line along the bottom is the naive kernel.** It never leaves ~200
+- **The red line along the bottom is the naive kernel.** It never leaves ~450
   GFLOPS at any size. Uncoalesced access is so expensive that nothing else
   about the kernel matters.
-- **Everything plateaus after ~2048.** Below that the matrices are too small to
+- **Everything plateaus after ~1536.** Below that the matrices are too small to
   fill the GPU, so you're measuring launch overhead and idle SMs rather than
   the kernel. This is why I quote my numbers at 4096.
-- **The two spiky lines (black cuBLAS, cyan 2D) are contention**, not real
-  behaviour — see the note below the table.
+- **The gaps between the lines are the whole project.** Each band is one
+  optimisation, and they're all roughly multiplicative.
 
 | Kernel | 1024 | 2048 | 4096 | 6144 | % of cuBLAS @ 4096 |
 |---|---|---|---|---|---|
-| 1. native | 198 | 208 | 212 | 210 | 0.9% |
-| 2. memory coalescing | 2742 | 2560 | 2679 | 2509 | 11.9% |
-| 3. shared memory tiling | 5446 | 3711 | 3715 | 3822 | 16.5% |
-| 4. 1D block tiling | 8028 | 7970 | 7462 | 7651 | 33.1% |
-| 5. 2D block tiling | 6438 | 24082 | **11485** | 11842 | **50.9%** |
-| 0. cuBLAS | 33662 | 27211 | 22552 | 22225 | — |
+| 1. native | 437 | 438 | 449 | 446 | 1.0% |
+| 2. memory coalescing | 5421 | 5572 | 5647 | 5277 | 12.2% |
+| 3. shared memory tiling | 8117 | 8290 | 8064 | 8086 | 17.4% |
+| 4. 1D block tiling | 15723 | 15729 | 15493 | 15821 | 33.5% |
+| 5. 2D block tiling | 10764 | 24122 | **24587** | 24711 | **53.1%** |
+| 0. cuBLAS | 33499 | 44984 | 46276 | 46099 | — |
 
 (GFLOPS. Higher is better.)
 
 The step-by-step ladder at 4096:
 
 ```
-native  -> coalesce         12.63x     <- by far the biggest single win
-coalesce -> shared           1.39x
-shared  -> 1D blocktiling    2.01x
-1D      -> 2D blocktiling    1.54x
+native  -> coalesce         12.58x     <- by far the biggest single win
+coalesce -> shared           1.43x
+shared  -> 1D blocktiling    1.92x
+1D      -> 2D blocktiling    1.59x
 -------------------------------------
-native  -> 2D blocktiling   54.17x
+native  -> 2D blocktiling   54.76x
 ```
 
 ### About these numbers
 
-**I was running on a shared H200**, so there is still noise in here. The
-obvious tell is kernel 5 at 2048 reporting 24082 GFLOPS — higher than its own
-4096 number and nearly at cuBLAS. That is not real, it's a lucky window where
-the card was briefly free. Kernel 5 at 1024 is low for the opposite reason.
+These are from a run when the H200 was essentially idle. I had to wait for it,
+because it's a shared card and most of my earlier benchmarking was done while
+other people's jobs were running.
 
-The large sizes are trustworthy though, and I can show that rather than just
-assert it: this sweep puts cuBLAS at **22552** GFLOPS at 4096, and a completely
-separate clean run through PyTorch measured FP32 cuBLAS at **22402** GFLOPS.
-Two independent measurements landing within 0.7% of each other. Same for my own
-kernel (11485 here, 11838 there).
+That turned out to be a useful accident. Here is the same sweep at 4096 on a
+busy GPU vs an idle one:
 
-So **~51% of FP32 cuBLAS** is the number I stand behind, and the ladder above
-is the real shape of the optimisation.
+| | busy | idle | ratio |
+|---|---|---|---|
+| native | 212 | 449 | 2.12x |
+| coalesce | 2679 | 5647 | 2.11x |
+| shared | 3715 | 8064 | 2.17x |
+| 1D blocktiling | 7462 | 15493 | 2.08x |
+| 2D blocktiling | 11485 | 24587 | 2.14x |
+| cuBLAS | 22552 | 46276 | 2.05x |
 
-Still on the list: re-run everything on a fully idle GPU and regenerate the
-plot.
+Contention cost me almost exactly **half my throughput across the board**, and
+the *relative* ordering never moved. My step-by-step ladder on the busy run was
+`12.63 / 1.39 / 2.01 / 1.54`; on the idle run it is `12.58 / 1.43 / 1.92 /
+1.59`. Every step within a few percent.
+
+That is worth knowing as a benchmarking lesson: on a contended GPU the absolute
+GFLOPS are meaningless, but **speedup ratios between kernels are still
+trustworthy**, because everything is being throttled by the same factor. I was
+able to do all my optimisation work on a busy card and only needed clean time
+for the final numbers.
+
+The old busy-GPU plot is kept at `images/all_kernels.png` for comparison — the
+spiky black and cyan lines in it are contention artifacts, not kernel
+behaviour.
 
 ---
 
@@ -182,10 +196,10 @@ actually measure what uncoalesced access costs on this hardware instead of
 guessing:
 
 ```
-native (row = threadIdx.x, uncoalesced)  :   212 GFLOPS
-coalesce (col = threadIdx.x, coalesced)  :  2679 GFLOPS
+native (row = threadIdx.x, uncoalesced)  :   449 GFLOPS
+coalesce (col = threadIdx.x, coalesced)  :  5647 GFLOPS
                                             ---------
-                                             12.63x
+                                             12.58x
 ```
 
 **12.6x from changing which of two variables gets `threadIdx.x`.** Not one line
@@ -243,7 +257,7 @@ blocks never synchronise inside a kernel. Launching 1000 blocks does not mean
 1000 blocks run at once — only as many as fit on the SMs run, the rest wait. So
 block A can be on tile 3 while block B is on tile 1 and block C hasn't started.
 
-This got me to ~16.5% of cuBLAS — only 1.39x over the coalesced kernel, which
+This got me to ~17.4% of cuBLAS — only 1.43x over the coalesced kernel, which
 was much less than I expected. Still slow, because **each thread still computes
 only one output**, so it does 2 FLOPs per shared-memory load. The bottleneck
 moved from DRAM bandwidth to shared-memory/instruction throughput.
@@ -254,7 +268,7 @@ moved from DRAM bandwidth to shared-memory/instruction throughput.
 
 `1D_blocktiling/1D_blocktiling_kernel.cu`
 
-2.01x over shared memory — the biggest win after fixing coalescing.
+1.92x over shared memory — the biggest win after fixing coalescing.
 
 The fix for "2 FLOPs per load" is to make each thread compute **more than one
 output**, so one loaded value gets used many times.
@@ -337,7 +351,7 @@ This kernel has **no boundary checks**, so it needs `M % 128 == 0`,
 `N % 128 == 0`, `K % 16 == 0`. `launch_2d` checks this and errors out instead
 of silently reading out of bounds.
 
-**11485 GFLOPS at 4096 — 50.9% of FP32 cuBLAS on the same run, and 54x the
+**24587 GFLOPS at 4096 — 53.1% of FP32 cuBLAS on the same run, and 54.8x the
 naive kernel.**
 
 ---
@@ -430,6 +444,11 @@ click properly. `M = N = K = 4096`, H200 NVL:
 | `nihar_mat_mul` (my 2D kernel) | 11.609 ms | 11838.6 | — |
 | `torch.matmul`, FP32, no TF32 | 6.135 ms | 22402.2 | 1.9x |
 | `torch.matmul`, TF32 tensor cores | 0.752 ms | 182667.9 | 15.4x |
+
+(These three were measured in one sitting on a *busy* card, so treat the
+absolute GFLOPS as ~2x low — but they were all measured together, so the ratios
+hold. As a cross-check, the mine-vs-cuBLAS-FP32 ratio here is 1.89x, and the
+idle-GPU sweep further up gives 46276 / 24587 = 1.88x. Same answer.)
 
 I originally had a line in my benchmark saying torch wins because it uses
 "cuBLAS + tensor cores". **That was wrong.** PyTorch defaults
@@ -531,7 +550,8 @@ python test_extension.py
   runtime counters. `ncu` would give me warp stall reasons and the memory vs
   compute throughput split, which is what tells me whether the remaining 1.9x
   is instruction issue or memory.
-- Re-run every benchmark on an **idle** GPU.
+- Re-run the **PyTorch/TF32 comparison** on an idle card so those absolutes
+  match the main table (the sweep itself is already done on a quiet GPU).
 
 ---
 
@@ -548,10 +568,14 @@ Keeping these because they were the actual learning.
   uncoalesced turned a confusing 8% into a measured 12.6x.
 - Confused thread block dimensions with output tile dimensions when moving to
   1D block tiling.
-- Assumed shared memory tiling would be a big win. It was only 1.39x, getting
-  me to 16.5% of cuBLAS, because it fixed the DRAM traffic but left every
+- Assumed shared memory tiling would be a big win. It was only 1.43x, getting
+  me to 17.4% of cuBLAS, because it fixed the DRAM traffic but left every
   thread doing 2 FLOPs per shared-memory load. The real fix was register
   tiling.
+- Spent a while assuming my benchmarks were worthless because the GPU was
+  shared. They weren't — contention scaled every kernel by the same ~2.1x, so
+  the ratios I was optimising against were correct the whole time. Only the
+  headline number needed a quiet card.
 - Wrote in my own benchmark that torch beats me because it "uses tensor
   cores". It doesn't, by default — `allow_tf32` is `False`. I'd repeated a
   thing I'd read instead of checking a one-line flag. The real answer turned
